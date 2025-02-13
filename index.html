@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ECE516 Project - Robot Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .controller {
+            margin-bottom: 20px;
+        }
+        .buttons {
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left stop right"
+                ". down .";
+            gap: 10px;
+        }
+        button {
+            font-size: 20px;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #up {
+            grid-area: up;
+        }
+        #left {
+            grid-area: left;
+        }
+        #stop {
+            grid-area: stop;
+        }
+        #right {
+            grid-area: right;
+        }
+        #down {
+            grid-area: down;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(8, 40px);
+            grid-template-rows: repeat(8, 40px);
+            gap: 2px;
+            background-color: #000;
+            border: 2px solid #000;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            background-color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .robot {
+            width: 20px;
+            height: 20px;
+            background-color: #00ff00;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <h1>ECE516 Project - Robot Controller</h1>
+    <div class="controller">
+        <div class="buttons">
+            <button id="up" onclick="sendCommand('forward')">⬆️ Forward</button>
+            <button id="left" onclick="sendCommand('left')">⬅️ Left</button>
+            <button id="stop" onclick="sendCommand('stop')">⏹️ Stop</button>
+            <button id="right" onclick="sendCommand('right')">➡️ Right</button>
+            <button id="down" onclick="sendCommand('backward')">⬇️ Backward</button>
+        </div>
+    </div>
+    <div class="grid" id="grid"></div>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:8765");
+        const grid = document.getElementById("grid");
+        let robotPosition = { x: 0, y: 0 }; // Starting position (top-left corner)
+
+        // Create the 8x8 grid
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const cell = document.createElement("div");
+                cell.classList.add("cell");
+                if (row === robotPosition.y && col === robotPosition.x) {
+                    const robot = document.createElement("div");
+                    robot.classList.add("robot");
+                    cell.appendChild(robot);
+                }
+                grid.appendChild(cell);
+            }
+        }
+
+        ws.onopen = () => console.log("Connected to Robot Server");
+        ws.onmessage = (event) => console.log("Robot Response:", event.data);
+
+        function sendCommand(command) {
+            ws.send(command);
+            console.log("Sent:", command);
+            moveRobot(command);
+        }
+
+        function moveRobot(command) {
+            const cells = document.querySelectorAll(".cell");
+            const robotCell = cells[robotPosition.y * 8 + robotPosition.x];
+            robotCell.innerHTML = ""; // Remove robot from current cell
+
+            switch (command) {
+                case "forward":
+                    if (robotPosition.y > 0) robotPosition.y--;
+                    break;
+                case "backward":
+                    if (robotPosition.y < 7) robotPosition.y++;
+                    break;
+                case "left":
+                    if (robotPosition.x > 0) robotPosition.x--;
+                    break;
+                case "right":
+                    if (robotPosition.x < 7) robotPosition.x++;
+                    break;
+                case "stop":
+                    // No movement
+                    break;
+            }
+
+            const newRobotCell = cells[robotPosition.y * 8 + robotPosition.x];
+            const robot = document.createElement("div");
+            robot.classList.add("robot");
+            newRobotCell.appendChild(robot);
+        }
+    </script>
+</body>
+</html>
